@@ -1,10 +1,23 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 
-class Source(BaseModel):
+class SourceCreate(BaseModel):
     name: str
-    url: str
+    url: HttpUrl
 
 class SourceOut(BaseModel):
     id: int
     name: str
     url: str
+
+    model_config = {"from_attributes": True}
+
+class TagCreate(BaseModel):
+    name: str
+    description: str | None = None
+
+class TagOut(BaseModel):
+    id: int
+    name: str
+    description: str | None
+
+    model_config = {"from_attributes": True}

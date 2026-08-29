@@ -1,35 +1,90 @@
-from app.schemas import Source
+from sqlalchemy.orm import Session
+from app import models
+from app.schemas import  SourceCreate, TagCreate
+from app.repositories import SourceRepository,TagRepository
+from app.exceptions import ConflictError, NotFoundError, BadRequestError
+from sqlalchemy.exc import IntegrityError
 
-sources_db: list[dict] = []
+# Core functions
 
-def create_source(source: Source) -> dict:
-    new_item = {"id": len(sources_db) + 1, **source.model_dump()}
-    sources_db.append(new_item)
-    return new_item
+def create_source(db: Session, source: SourceCreate) -> models.Source:
+    repo = SourceRepository(db)
+    url_str = str(source.url)
+    if repo.get_by_url(url=source.url) is not None:
+        raise ConflictError("Source with this URL already exists")
+    try:
+        return repo.create(name=source.name, url=url_str)
+    except IntegrityError:
+        raise ConflictError("Source with this URL already exists")
 
-def get_all_sources(limit: int = 10, search: str | None = None) -> list[dict]:
-    if search:
-        result = [item for item in sources_db if search.lower() in item["name"].lower()]
-        return result[:limit]
-    return sources_db[:limit]
 
-def get_source(source_id: int) -> dict | None:
-    for item in sources_db:
-        if item["id"] == source_id:
-            return item
-    return None
+def get_all_sources(db: Session, limit: int = 10, search: str | None = None) -> list[models.Source]:
+    repo = SourceRepository(db)
+    return repo.get_all(limit=limit, search=search)
 
-def update_source(source_id: int, source: Source) -> dict | None:
-    updated = {"id": source_id, **source.model_dump()}
-    for i, item in enumerate(sources_db):
-        if item["id"] == source_id:
-            sources_db[i] = updated
-            return updated
-    return None
+def get_source(db: Session, source_id: int) -> models.Source:
+    repo = SourceRepository(db)
+    source = repo.get_by_id(source_id=source_id)
+    if source is None:
+        raise NotFoundError("Source not found")
+    return source
 
-def delete_source(source_id: int) -> bool:
-    for item in sources_db:
-        if item["id"] == source_id:
-            sources_db.remove(item)
-            return True
-    return False
+def update_source(db: Session, source_id: int, source: SourceCreate) -> models.Source:
+    repo = SourceRepository(db)
+    existing = repo.get_by_id(source_id=source_id)
+    if existing is None:
+        raise NotFoundError("Source not found")
+    try:
+        return repo.update(existing, name=source.name, url=source.url)
+    except IntegrityError:
+        raise ConflictError("Source with this URL already exists")
+
+
+def delete_source(db: Session, source_id: int):
+    repo = SourceRepository(db)
+    existing = repo.get_by_id(source_id=source_id)
+    if existing is None:
+        raise NotFoundError("Source not found")
+    repo.delete(existing)
+
+# Tag functions
+
+def create_tag(db: Session, tag: TagCreate) -> models.Tag:
+    repo = TagRepository(db)
+    if repo.get_by_name(name == tag.name) is not None:
+        raise ConflictError("Tag with this name already exists")
+    try:
+        return repo.create(name=tag.name, description=tag.description)
+    except IntegrityError:
+        raise ConflictError("Tag with this name already exists")
+
+
+def get_all_tags(db: Session, limit: int = 10, search: str | None = None) -> list[models.Tag]:
+    repo = TagRepository(db)
+    return repo.get_all(limit=limit, search=search)
+
+def get_tag(db: Session, tag_id: int) -> models.Tag:
+    repo = TagRepository(db)
+    tag = repo.get_by_id(tag_id=tag_id)
+    if tag is None:
+        raise NotFoundError("Tag not found")
+    return tag
+
+def update_tag(db: Session, tag_id: int, tag: TagCreate) -> models.Tag:
+    repo = TagRepository(db)
+    existing = repo.get_by_id(tag_id=tag_id)
+    if existing is None:
+        raise NotFoundError("Tag not found")
+    try:
+        return repo.update(existing, name=tag.name, description=tag.description)
+    except IntegrityError:
+        raise NotFoundError("Tag not found")
+
+def delete_tag(db: Session, tag_id: int):
+    repo = TagRepository(db)
+    existing = repo.get_by_id(tag_id=tag_id)
+    if existing is None:
+        raise ConflictError("Tag with this name already exists")
+    repo.delete(existing)
+
+    
