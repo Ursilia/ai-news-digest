@@ -5,21 +5,23 @@ class SourceRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def create(self, name: str, url: str) -> models.Source:
-        new_source = models.Source(name=name, url=url)
+    def create(self, name: str, url: str, owner_id: int) -> models.Source:
+        new_source = models.Source(name=name, url=url, owner_id=owner_id)
         self.db.add(new_source)
         self.db.commit()
         self.db.refresh(new_source)
         return new_source
 
-    def get_by_url(self, url: str) -> models.Source | None:
-        return self.db.query(models.Source).filter(models.Source.url == url).first()
+    def get_by_url(self, url: str, owner_id: int) -> models.Source | None:
+        return self.db.query(models.Source).filter(models.Source.url == url,
+                                                   models.Source.owner_id == owner_id).first()
 
-    def get_by_id(self, source_id: int) -> models.Source | None:
-        return self.db.query(models.Source).filter(models.Source.id == source_id).first()
+    def get_by_id(self, source_id: int, owner_id: int) -> models.Source | None:
+        return self.db.query(models.Source).filter(models.Source.id == source_id,
+                                                   models.Source.owner_id == owner_id).first()
 
-    def get_all(self, limit: int = 10, search: str | None = None) -> list[models.Source]:
-        query = self.db.query(models.Source)
+    def get_all(self,owner_id: int, limit: int = 10, search: str | None = None) -> list[models.Source]:
+        query = self.db.query(models.Source).filter(models.Source.owner_id == owner_id)
         if search:
             query = query.filter(models.Source.name.ilike(f"%{search}%"))
         return query.limit(limit).all()
@@ -79,4 +81,21 @@ class TagRepository:
         self.db.delete(tag)
         self.db.commit()
 
+
+class UserRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_by_email(self, email: str) -> models.User | None:
+        return self.db.query(models.User).filter(models.User.email == email).first()
+
+    def get_by_id(self, used_id: int) -> models.User | None:
+        return self.db.query(models.User).filter(models.User.id == used_id).first()
+
+    def create(self, email: str, hashed_password: str) -> models.User:
+        new_user = models.User(email=email, hashed_password=hashed_password)
+        self.db.add(new_user)
+        self.db.commit()
+        self.db.refresh(new_user)
+        return new_user
     

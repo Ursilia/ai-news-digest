@@ -19,3 +19,7 @@ class ConflictError(AppException):
 class BadRequestError(AppException):
     status_code = 400
     detail = "Bad request"
+
+class UnauthorizedError(AppException):
+    status_code = 401
+    detail = "Unauthorized"
