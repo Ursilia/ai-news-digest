@@ -2,8 +2,14 @@ from sqlalchemy.orm import Session
 from app import models, security
 from app.schemas import  SourceCreate, TagCreate, UserCreate
 from app.repositories import SourceRepository,TagRepository, UserRepository
-from app.exceptions import ConflictError, NotFoundError, BadRequestError, UnauthorizedError
+from app.exceptions import ConflictError, NotFoundError, BadRequestError as AppBadRequest, UnauthorizedError, LLMServiceError
 from sqlalchemy.exc import IntegrityError
+
+from openai import OpenAIError, AuthenticationError, BadRequestError, RateLimitError
+from app.llm import summarizer, chat
+
+from typing import AsyncGenerator
+
 
 # Core functions
 
@@ -84,7 +90,7 @@ def delete_tag(db: Session, tag_id: int):
     repo = TagRepository(db)
     existing = repo.get_by_id(tag_id=tag_id)
     if existing is None:
-        raise ConflictError("Tag with this name already exists")
+        raise NotFoundError("Tag not found")
     repo.delete(existing)
 
 
@@ -108,3 +114,45 @@ def login_user(db: Session, email: str, password: str) -> str:
     if user is None or not security.verify_password(password, user.hashed_password):
         raise UnauthorizedError("Invalid email or password")
     return security.create_access_token(user_id=user.id)
+
+#LLM
+
+async def summarize_article(text: str) -> str:
+    try:
+        return await summarizer.summarize_text(text)
+    except AuthenticationError:
+        raise LLMServiceError("AI service is misconfigured")
+    except RateLimitError:
+        raise LLMServiceError("AI service is currently overloaded, please retry later")
+    except BadRequestError:
+        raise AppBadRequest("Text was rejecter by AI service")
+    except OpenAIError:
+        raise LLMServiceError()
+
+async def ask_question(question: str, history: list) -> str:
+    try:
+        return await chat.ask_question(question=question, history=history)
+    except AuthenticationError:
+        raise LLMServiceError("AI service is misconfigured")
+    except RateLimitError:
+        raise LLMServiceError("AI service is currently overloaded, please retry later")
+    except BadRequestError:
+        raise AppBadRequest("Question was rejected by AI service")
+    except OpenAIError:
+        raise LLMServiceError()
+
+async def ask_question_stream(
+        question: str,
+        history: list
+) -> AsyncGenerator[str, None]:
+    try:
+        async for chunk in chat.ask_question_stream(question=question, history=history):
+            yield chunk
+    except AuthenticationError:
+        raise LLMServiceError("AI service is misconfigured")
+    except RateLimitError:
+        raise LLMServiceError("AI service is currently overloaded, please retry later")
+    except BadRequestError:
+        raise AppBadRequest("Question was rejected by AI service")
+    except OpenAIError:
+        raise LLMServiceError()

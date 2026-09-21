@@ -54,5 +54,17 @@ Work in progress. Currently implemented:
 - Database migrations
 - Basic auth test coverage
 
+## AI Features
+
+- `POST /ai/summarize` — summarize any text via LLM (gpt-4o-mini)
+- `POST /ai/ask` — Q&A with conversation history
+- `POST /ai/ask/stream` — same as `/ai/ask` but with Server-Sent Events streaming
+
+All AI endpoints:
+- Require authentication (JWT)
+- Use retry with exponential backoff on transient errors
+- Have 30-second timeout
+- Load prompts from `prompts/` folder (editable without code changes)
+
 Planned: LLM integration for summarization, RAG pipeline with pgvector,
 background tasks (Celery), Docker deployment, CI/CD.

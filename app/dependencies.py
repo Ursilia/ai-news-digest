@@ -27,7 +27,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise UnauthorizedError("Invalid token payload")
 
     repo = UserRepository(db)
-    user = repo.get_by_id(used_id=user_id)
+    user = repo.get_by_id(user_id=user_id)
     if user is None:
         raise UnauthorizedError("User not found")
 

@@ -23,3 +23,7 @@ class BadRequestError(AppException):
 class UnauthorizedError(AppException):
     status_code = 401
     detail = "Unauthorized"
+
+class LLMServiceError(AppException):
+    status_code = 503
+    detail = "AI service temporarily unavailable"

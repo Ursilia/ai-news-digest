@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from app.routes import auth, tags, sources
+from app.routes import auth, tags, sources, ai
 from app.exceptions import AppException
 from fastapi.responses import JSONResponse
 
@@ -13,3 +13,4 @@ async def app_exeption_handler(request: Request, exc: AppException):
 app.include_router(auth.router)
 app.include_router(sources.router)
 app.include_router(tags.router)
+app.include_router(ai.router)

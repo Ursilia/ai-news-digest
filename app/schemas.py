@@ -1,5 +1,7 @@
 from pydantic import BaseModel, HttpUrl, EmailStr, Field
 from datetime import datetime
+from typing import Literal
+
 
 class SourceCreate(BaseModel):
     name: str
@@ -40,3 +42,20 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+class SummarizeRequest(BaseModel):
+    text: str = Field(min_length=50, max_length=50000)
+
+class SummarizeResponse(BaseModel):
+    summary: str
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=10000)
+
+class AskRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=5000)
+    history: list[ChatMessage] = Field(default_factory=list, max_length=20)
+
+class AskResponse(BaseModel):
+    answer: str
