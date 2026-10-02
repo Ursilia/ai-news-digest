@@ -105,11 +105,13 @@ def test_several_wrong_passwords(client):
         json={"email": "alice@test.com", "password": "password123"}
     )
     for _ in range(3):
-        assert response.status_code == 401
         response = client.post(
                 "/login",
-                data={"username": "alice@test.com", "password": "password123"}
+                data={"username": "alice@test.com", "password": "password111"}
             )
+        assert response.status_code == 401
+    response = client.post("/login",
+                data={"username": "alice@test.com", "password": "password123"})
     assert response.status_code == 200
 
     

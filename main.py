@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from app.routes import auth, tags, sources, ai
+from app.routes import auth, tags, sources, ai, documents
 from app.exceptions import AppException
 from fastapi.responses import JSONResponse
 
@@ -14,3 +14,4 @@ app.include_router(auth.router)
 app.include_router(sources.router)
 app.include_router(tags.router)
 app.include_router(ai.router)
+app.include_router(documents.router)

@@ -46,3 +46,4 @@ async def ask_stream(
         event_generator(),
         media_type="text/event-stream",
     )
+

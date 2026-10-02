@@ -68,3 +68,20 @@ All AI endpoints:
 
 Planned: LLM integration for summarization, RAG pipeline with pgvector,
 background tasks (Celery), Docker deployment, CI/CD.
+
+## RAG (Retrieval-Augmented Generation)
+
+Full RAG pipeline built without frameworks (no LangChain).
+
+- `POST /documents` — upload text, automatic chunking + embeddings
+- `POST /documents/search` — semantic search across your documents
+- `POST /documents/ask` — RAG-based Q&A with source citations
+
+Stack:
+- OpenAI `text-embedding-3-small` for embeddings
+- pgvector extension in Postgres for vector storage
+- Cosine distance for similarity search
+- Sentence-aware chunking with overlap (500 tokens per chunk, 100 overlap)
+- Distance threshold (0.7) filters irrelevant results
+
+Multi-tenant: each user only searches within their own documents.

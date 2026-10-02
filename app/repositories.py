@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app import models
+from sqlalchemy import select
 
 class SourceRepository:
     def __init__(self, db: Session):
@@ -98,4 +99,61 @@ class UserRepository:
         self.db.commit()
         self.db.refresh(new_user)
         return new_user
-    
+
+
+class DocumentRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create(self, title: str, content: str, owner_id: int) -> models.Document:
+        new_doc = models.Document(title=title, content=content, owner_id=owner_id)
+        self.db.add(new_doc)
+        self.db.commit()
+        self.db.refresh(new_doc)
+        return new_doc
+
+    def get_by_id(self, document_id: int, owner_id: int) -> models.Document | None:
+        return (self.db.query(models.Document)
+                .filter(models.Document.id==document_id, 
+                models.Document.owner_id==owner_id,
+                ).first())
+
+    def get_all(self, owner_id: int, limit: int = 20) -> list[models.Document]:
+        return (self.db.query(models.Document)
+                .filter(models.Document.owner_id==owner_id)
+                .order_by(models.Document.created_at.desc()).limit(limit).all()
+                )
+
+    def delete(self, document: models.Document) -> None:
+        self.db.delete(document)
+        self.db.commit()
+
+    def add_chunks(self, document_id: int, chunks: list[tuple[str, list[float]]],
+                   ) -> list[models.Chunk]:
+        chunks_objects = [
+            models.Chunk(
+                document_id=document_id,
+                content=text,
+                chunk_index=i,
+                embedding=embedding,
+            )
+            for i, (text, embedding) in enumerate(chunks)
+        ]
+        self.db.add_all(chunks_objects)
+        self.db.commit()
+        return chunks_objects
+
+    def search_chunks(self, query_embedding: list[float], 
+                      owner_id: int, 
+                      limit: int = 5,) -> list[tuple[models.Chunk, float]]:
+        
+        distance = models.Chunk.embedding.cosine_distance(query_embedding).label("distance")
+
+        stmt = (
+            select(models.Chunk, distance)
+            .join(models.Document, models.Chunk.document_id == models.Document.id)
+            .where(models.Document.owner_id == owner_id)
+            .order_by(distance)
+            .limit(limit)
+        )
+        return self.db.execute(stmt).all()
